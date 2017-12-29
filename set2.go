@@ -1,6 +1,11 @@
 package GryptoPals
 
-import "crypto/cipher"
+import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	mathrand "math/rand"
+)
 
 func padPKCS7(in []byte, size int) []byte {
 	if size >= 256 {
@@ -50,4 +55,53 @@ func decryptCBC(src []byte, b cipher.Block, iv []byte) []byte {
 		prev = src[i*bs : (i+1)*bs]
 	}
 	return out
+}
+
+func encryptECB(in []byte, b cipher.Block) []byte {
+	if len(in)%b.BlockSize() != 0 {
+		panic("EncryptECB: length not a multiple of BlockSize")
+	}
+	out := make([]byte, len(in))
+	for i := 0; i < len(in); i += b.BlockSize() {
+		b.Encrypt(out[i:], in[i:])
+	}
+	return out
+}
+
+func newECBCBCOracle() func([]byte) []byte {
+	key := make([]byte, 16)
+	_, err := rand.Read(key)
+	if err != nil {
+		panic("Failed to read from rand")
+	}
+	b, err := aes.NewCipher(key)
+	if err != nil {
+		panic("Failed to create new AES cypher")
+	}
+
+	return func(in []byte) []byte {
+		prefix := make([]byte, mathrand.Intn(5)+5)
+		_, err := rand.Read(prefix)
+		if err != nil {
+			panic("Failed to read from rand")
+		}
+		suffix := make([]byte, mathrand.Intn(5)+5)
+		_, err = rand.Read(suffix)
+		if err != nil {
+			panic("Failed to read from rand")
+		}
+
+		msg := padPKCS7(append(append(prefix, in...), suffix...), 16)
+
+		if mathrand.Intn(10)%2 == 0 {
+			iv := make([]byte, 16)
+			_, err := rand.Read(iv)
+			if err != nil {
+				panic("Failed to read from rand")
+			}
+			return encryptCBC(msg, b, iv)
+		}
+
+		return encryptECB(in, b)
+	}
 }

@@ -27,3 +27,18 @@ func TestProblem10(t *testing.T) {
 	msg = decodeBase64(t, string(readFile(t, "10.txt")))
 	t.Logf("%s", decryptCBC(msg, b, iv))
 }
+
+func TestProblem11(t *testing.T) {
+	oracle := newECBCBCOracle()
+	payload := bytes.Repeat([]byte{42}, 16*3)
+	ecb, cbc := 0, 0
+	for i := 0; i < 1000; i++ {
+		out := oracle(payload)
+		if detectECB(out, 16) {
+			ecb++
+		} else {
+			cbc++
+		}
+	}
+	t.Log(ecb, cbc)
+}
