@@ -52,3 +52,17 @@ YnkK`)
 	oracle := newECBSuffixOracle(secret)
 	recoverECBSuffx(oracle)
 }
+
+func TestProblem13(t *testing.T) {
+	t.Logf("profile %s", profileFor("test@example.com"))
+	t.Logf("profile %s", profileFor("test@example.com&role=admin"))
+
+	generateCookie, amIAdmin := newCutAndPasteECBOracles()
+	if amIAdmin(generateCookie("example@example.com")) {
+		t.Fatal("this is too easy")
+	}
+
+	if !amIAdmin(makeECBAdminCookie(generateCookie)) {
+		t.Error("not admin")
+	}
+}

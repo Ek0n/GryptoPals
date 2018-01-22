@@ -7,6 +7,9 @@ import (
 	"crypto/rand"
 	"fmt"
 	mathrand "math/rand"
+	"net/url"
+	"strconv"
+	"strings"
 )
 
 func padPKCS7(in []byte, size int) []byte {
@@ -172,4 +175,78 @@ func recoverECBSuffx(oracle func([]byte) []byte) []byte {
 
 func mod(a, b int) int {
 	return (a%b + b) % b
+}
+
+func profileFor(email string) string {
+	profile := url.Values{}
+	profile.Add("email", email)
+	profile.Add("role", "user")
+	profile.Add("uid", strconv.Itoa(10+mathrand.Intn(90)))
+
+	return profile.Encode()
+}
+
+func newCutAndPasteECBOracles() (
+	generateCookie func(email string) string,
+	amIAdmin func(cookie string) bool,
+) {
+	key := make([]byte, 16)
+	_, err := rand.Read(key)
+	if err != nil {
+		panic("Failed to read from rand")
+	}
+	b, err := aes.NewCipher(key)
+	if err != nil {
+		panic("Failed to create new AES cypher")
+	}
+
+	generateCookie = func(email string) string {
+		profile := []byte(profileFor(email))
+		cookie := encryptECB(padPKCS7(profile, 16), b)
+		return string(cookie)
+	}
+	amIAdmin = func(cookie string) bool {
+		cookie = string(unpadPKCS7(decryptECB([]byte(cookie), b)))
+		v, err := url.ParseQuery(cookie)
+		if err != nil {
+			return false
+		}
+		return v.Get("role") == "admin"
+	}
+	return
+}
+
+func unpadPKCS7(in []byte) []byte {
+	if len(in) == 0 {
+		return in
+	}
+	b := in[len(in)-1]
+	if int(b) > len(in) || b == 0 {
+		return nil
+	}
+	for i := 1; i < int(b); i++ {
+		if in[len(in)-1-i] != b {
+			return nil
+		}
+	}
+	return in[:len(in)-int(b)]
+}
+
+func makeECBAdminCookie(generateCookie func(email string) string) string {
+	// These could be obtained with recoverECBSuffix
+	start, _ := "email=", "&role=user&uid=51"
+
+	genBlock := func(prefix string) string {
+		msg := strings.Repeat("A", 16-len(start)) + prefix
+		return generateCookie(msg)[16:32]
+	}
+
+	block1 := generateCookie("FOO@BAR.AA")[:16] // email=FOO@BAR.AA
+	block2 := genBlock("AAAAAAAAAA")            // AAAAAAAAAA&role=
+	block3 := genBlock("admin")                 // admin&role=user&
+	msg := strings.Repeat("A", 16-1-len(start))
+	block4 := generateCookie(msg)[16:48] // role=user&uid=51 + padding
+
+	// email=FOO@BAR.AAAAAAAAAAAA&role=admin&role=user&role=user&uid=51 + padding
+	return block1 + block2 + block3 + block4
 }
