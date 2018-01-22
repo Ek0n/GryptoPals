@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func padPKCS7(in []byte, size int) []byte {
@@ -128,7 +129,7 @@ func newECBSuffixOracle(suffix []byte) func([]byte) []byte {
 	}
 }
 
-func recoverECBSuffx(oracle func([]byte) []byte) []byte {
+func recoverECBSuffix(oracle func([]byte) []byte) []byte {
 	var bs int
 	for blockSize := 2; blockSize < 100; blockSize++ {
 		msg := bytes.Repeat([]byte{42}, blockSize*2)
@@ -249,4 +250,66 @@ func makeECBAdminCookie(generateCookie func(email string) string) string {
 
 	// email=FOO@BAR.AAAAAAAAAAAA&role=admin&role=user&role=user&uid=51 + padding
 	return block1 + block2 + block3 + block4
+}
+
+func newECBSuffixOracleWithPrefix(secret []byte) func([]byte) []byte {
+	key := make([]byte, 16)
+	rand.Read(key)
+	b, _ := aes.NewCipher(key)
+	prefix := make([]byte, mathrand.Intn(100))
+	return func(in []byte) []byte {
+		time.Sleep(200 * time.Microsecond)
+		rand.Read(prefix)
+		msg := append(prefix, append(in, secret...)...)
+		return encryptECB(padPKCS7(msg, 16), b)
+	}
+}
+
+func ecbIndex(in []byte, bs int) int {
+	if len(in)%bs != 0 {
+		panic("wrong sized input")
+	}
+	prev := in[:bs]
+	for i := 1; i < len(in)/bs; i++ {
+		if bytes.Equal(prev, in[i*bs:i*bs+bs]) {
+			return i*bs - bs
+		}
+		prev = in[i*bs : i*bs+bs]
+	}
+	return -1
+}
+
+func recoverECBSuffixWithPrefix(oracle func([]byte) []byte) []byte {
+	var bs, pl int
+	out := oracle(bytes.Repeat([]byte{42}, 500))
+	for blockSize := 2; blockSize < 100; blockSize++ {
+		if len(out)%blockSize != 0 {
+			continue
+		}
+		i := ecbIndex(out, blockSize)
+		if i < 0 {
+			continue
+		}
+		bs = blockSize
+		fmt.Println("bs:", bs)
+		for p := 0; p < bs; p++ {
+			msg := append(bytes.Repeat([]byte{42}, p+bs*2), 'X')
+			if ecbIndex(oracle(msg), bs) == i {
+				pl = i - p
+				fmt.Println("pl:", pl)
+				break
+			}
+		}
+		break
+	}
+	if bs == 0 || pl == 0 {
+		panic("didn't detect block or prefix size")
+	}
+
+	return recoverECBSuffix(func(in []byte) []byte {
+		p := bs - pl%bs
+		msg := append(bytes.Repeat([]byte{42}, p), in...)
+		out := oracle(msg)
+		return out[pl+p:]
+	})
 }

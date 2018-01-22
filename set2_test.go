@@ -50,7 +50,7 @@ aGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBq
 dXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUg
 YnkK`)
 	oracle := newECBSuffixOracle(secret)
-	recoverECBSuffx(oracle)
+	recoverECBSuffix(oracle)
 }
 
 func TestProblem13(t *testing.T) {
@@ -65,4 +65,14 @@ func TestProblem13(t *testing.T) {
 	if !amIAdmin(makeECBAdminCookie(generateCookie)) {
 		t.Error("not admin")
 	}
+}
+
+func TestProblem14(t *testing.T) {
+	secret := decodeBase64(t,
+		`Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg
+aGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBq
+dXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUg
+YnkK`)
+	oracle := newECBSuffixOracleWithPrefix(secret)
+	recoverECBSuffixWithPrefix(oracle)
 }
