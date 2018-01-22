@@ -36,7 +36,7 @@ func TestProblem3(t *testing.T) {
 }
 
 func TestProblem4(t *testing.T) {
-	text := readFile(t, "4.txt")
+	text := readFile(t, "testdata/4.txt")
 	var bestScore float64
 	var res []byte
 	for _, line := range strings.Split(string(text), "\n") {
@@ -64,7 +64,7 @@ func TestProblem6(t *testing.T) {
 		t.Fatal("wrong Hamming distance:", res)
 	}
 
-	text := decodeBase64(t, string(readFile(t, "6.txt")))
+	text := decodeBase64(t, string(readFile(t, "testdata/6.txt")))
 	t.Log("likely size:", findRepeatingXORSize(text))
 
 	key := findRepeatingXORKey(text, corpus)
@@ -74,7 +74,7 @@ func TestProblem6(t *testing.T) {
 }
 
 func TestProblem7(t *testing.T) {
-	in := decodeBase64(t, string(readFile(t, "7.txt")))
+	in := decodeBase64(t, string(readFile(t, "testdata/7.txt")))
 	b, err := aes.NewCipher([]byte("YELLOW SUBMARINE"))
 	fatalIfErr(t, err)
 	out := decryptECB(in, b)
@@ -82,7 +82,7 @@ func TestProblem7(t *testing.T) {
 }
 
 func TestProblem8(t *testing.T) {
-	all := string(readFile(t, "8.txt"))
+	all := string(readFile(t, "testdata/8.txt"))
 	for i, hs := range strings.Split(all, "\n") {
 		if detectECB(decodeHex(t, hs), 16) {
 			t.Logf("ciphertext number %d is encrypted with ECB", i+1)

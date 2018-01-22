@@ -24,7 +24,7 @@ func TestProblem10(t *testing.T) {
 		t.Errorf("%q", res)
 	}
 
-	msg = decodeBase64(t, string(readFile(t, "10.txt")))
+	msg = decodeBase64(t, string(readFile(t, "testdata/10.txt")))
 	t.Logf("%s", decryptCBC(msg, b, iv))
 }
 
