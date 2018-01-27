@@ -87,6 +87,17 @@ func TestProblem15(t *testing.T) {
 	assertEqual(t, unpadPKCS7([]byte("\x04\x04\x04\x04")), []byte(""))
 }
 
+func TestProblem16(t *testing.T) {
+	generateCookie, amIAdmin := newCBCCookieOracles()
+	if amIAdmin(generateCookie(";admin=true;")) {
+		t.Fatal("this is too easy")
+	}
+
+	if !amIAdmin(makeCBCAdminCookie(generateCookie)) {
+		t.Error("not admin")
+	}
+}
+
 // Helpers
 
 func assertNil(t *testing.T, v []byte) {
