@@ -76,3 +76,29 @@ YnkK`)
 	oracle := newECBSuffixOracleWithPrefix(secret)
 	recoverECBSuffixWithPrefix(oracle)
 }
+
+func TestProblem15(t *testing.T) {
+	assertNil(t, unpadPKCS7([]byte("ICE ICE BABY\x05\x05\x05\x05")))
+	assertNil(t, unpadPKCS7([]byte("ICE ICE BABY\x01\x02\x03\x04")))
+	assertNil(t, unpadPKCS7([]byte("YELLOW SUBMARINE\x00\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10")))
+	assertEqual(t, unpadPKCS7([]byte("ICE ICE BABY\x04\x04\x04\x04")), []byte("ICE ICE BABY"))
+	assertEqual(t, unpadPKCS7([]byte("YELLOW SUBMARINE\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10")), []byte("YELLOW SUBMARINE"))
+	assertNil(t, unpadPKCS7([]byte("\x04\x04\x04")))
+	assertEqual(t, unpadPKCS7([]byte("\x04\x04\x04\x04")), []byte(""))
+}
+
+// Helpers
+
+func assertNil(t *testing.T, v []byte) {
+	t.Helper()
+	if v != nil {
+		t.Error("value not nil")
+	}
+}
+
+func assertEqual(t *testing.T, a, b []byte) {
+	t.Helper()
+	if !bytes.Equal(a, b) {
+		t.Error("value not equal")
+	}
+}
