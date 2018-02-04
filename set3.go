@@ -169,3 +169,49 @@ func findFixedNonceCTRKeystream(ciphertexts [][]byte, corpus map[rune]float64) [
 	}
 	return keystream
 }
+
+type MT19937 struct {
+	index int
+	mt    [624]uint32
+}
+
+func NewMT19937(seed uint32) *MT19937 {
+	ret := &MT19937{
+		index: 624,
+	}
+
+	ret.mt[0] = seed
+	for i := 1; i < ret.index; i++ {
+		ret.mt[i] = 1812433253*(ret.mt[i-1]^ret.mt[i-1]>>30) + uint32(i)
+	}
+
+	return ret
+}
+
+func (mt *MT19937) ExtractNumber() uint32 {
+	if mt.index >= 624 {
+		mt.twist()
+	}
+
+	y := mt.mt[mt.index]
+
+	y ^= y >> 11
+	y ^= y << 7 & 2636928640
+	y ^= y << 15 & 4022730752
+	y ^= y >> 18
+
+	mt.index++
+	return y
+}
+
+func (mt *MT19937) twist() {
+	for i := range mt.mt {
+		y := (mt.mt[i] & 0x80000000) + (mt.mt[(i+1)%624] & 0x7fffffff)
+		mt.mt[i] = mt.mt[(i+397)%624] ^ y>>1
+		if y%2 != 0 {
+			mt.mt[i] ^= 0x9908b0df
+		}
+	}
+
+	mt.index = 0
+}
