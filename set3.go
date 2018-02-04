@@ -5,6 +5,8 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	mathrand "math/rand"
+	"time"
 	"unicode"
 )
 
@@ -214,4 +216,27 @@ func (mt *MT19937) twist() {
 	}
 
 	mt.index = 0
+}
+
+func randomNumberFromTimeSeed() uint32 {
+	time.Sleep(40 * time.Millisecond)
+	time.Sleep(time.Duration(mathrand.Intn(10000)) * time.Millisecond)
+
+	seed := uint32(time.Now().UnixNano() / int64(time.Millisecond))
+	n := NewMT19937(seed).ExtractNumber()
+
+	time.Sleep(40 * time.Millisecond)
+	time.Sleep(time.Duration(mathrand.Intn(10000)) * time.Millisecond)
+
+	return n
+}
+
+func recoverTimeSeed(output uint32) uint32 {
+	seed := uint32(time.Now().UnixNano() / int64(time.Millisecond))
+	for {
+		seed--
+		if output == NewMT19937(seed).ExtractNumber() {
+			return seed
+		}
+	}
 }

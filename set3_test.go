@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/aes"
 	"testing"
+	"time"
 )
 
 func TestProblem17(t *testing.T) {
@@ -399,4 +400,11 @@ func TestProblem21(t *testing.T) {
 			t.Fatalf("Wrong number, expected %d, got %d.", x, res)
 		}
 	}
+}
+
+func TestProblem22(t *testing.T) {
+	random := randomNumberFromTimeSeed()
+	t.Log("Random output:", random)
+	t.Log("Original seed:", recoverTimeSeed(random))
+	t.Log("Current time in ms:", uint32(time.Now().UnixNano()/int64(time.Millisecond)))
 }
