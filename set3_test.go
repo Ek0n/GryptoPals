@@ -3,6 +3,7 @@ package gryptopals
 import (
 	"bytes"
 	"crypto/aes"
+	"math/rand"
 	"testing"
 	"time"
 )
@@ -407,4 +408,31 @@ func TestProblem22(t *testing.T) {
 	t.Log("Random output:", random)
 	t.Log("Original seed:", recoverTimeSeed(random))
 	t.Log("Current time in ms:", uint32(time.Now().UnixNano()/int64(time.Millisecond)))
+}
+
+func TestProblem23(t *testing.T) {
+	for i := 0; i < 1000000; i++ {
+		y := rand.Uint32()
+		x := y
+
+		y ^= y >> 11
+		y ^= y << 7 & 2636928640
+		y ^= y << 15 & 4022730752
+		y ^= y >> 18
+
+		if x != untemperMT19937(y) {
+			t.Fatalf("untemper failed at iteration: %d", i)
+		}
+	}
+
+	mt := NewMT19937(uint32(time.Now().Unix()))
+	clone := NewMT19937(0)
+	for i := 0; i < 624; i++ {
+		clone.mt[i] = untemperMT19937(mt.ExtractNumber())
+	}
+	for i := 0; i < 2000; i++ {
+		if clone.ExtractNumber() != mt.ExtractNumber() {
+			t.Fail()
+		}
+	}
 }
