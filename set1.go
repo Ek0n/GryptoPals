@@ -1,4 +1,4 @@
-package GryptoPals
+package gryptopals
 
 import (
 	"crypto/cipher"
