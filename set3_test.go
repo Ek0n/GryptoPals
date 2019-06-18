@@ -436,3 +436,18 @@ func TestProblem23(t *testing.T) {
 		}
 	}
 }
+
+func TestProblem24(t *testing.T) {
+	knownPlaintext := []byte("AAAAAAAAAAAAAAAAAAA")
+	ct := MT19937Oracle(knownPlaintext)
+	t.Log(recoverMT19937Key(ct, knownPlaintext))
+
+	token := makeRandomTokenWithMT19937()
+	if !detectMT19937Token(token) {
+		t.Error("Failed to detect token.")
+	}
+	rand.Read(token)
+	if detectMT19937Token(token) {
+		t.Error("Detected non-MT19937 token.")
+	}
+}

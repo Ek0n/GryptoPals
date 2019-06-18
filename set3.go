@@ -251,3 +251,66 @@ func untemperMT19937(y uint32) uint32 {
 
 	return y
 }
+
+func encryptMT19937(src []byte, seed uint16) []byte {
+	mt := NewMT19937(uint32(seed))
+	keystream := make([]byte, len(src)+3)
+	for i := 0; i < len(src); i += 4 {
+		x := mt.ExtractNumber()
+		keystream[i] = byte(x)
+		keystream[i+1] = byte(x >> 8)
+		keystream[i+2] = byte(x >> 16)
+		keystream[i+3] = byte(x >> 24)
+	}
+	return xor(src, keystream)
+}
+
+func MT19937Oracle(knownPlaintext []byte) []byte {
+	msg := make([]byte, 10+mathrand.Intn(90))
+	rand.Read(msg)
+	msg = append(msg, knownPlaintext...)
+	key := make([]byte, 2)
+	rand.Read(key)
+	return encryptMT19937(msg, uint16(key[0])<<8+uint16(key[1]))
+}
+
+func recoverMT19937Key(ct, knownPlaintext []byte) uint16 {
+	// air-quotes "key"
+	for s := 0; s < 0xffff; s++ {
+		if bytes.HasSuffix(encryptMT19937(ct, uint16(s)), knownPlaintext) {
+			return uint16(s)
+		}
+	}
+	panic("key not found")
+}
+
+func makeRandomTokenWithMT19937() []byte {
+	token := make([]byte, 16)
+	mt := NewMT19937(uint32(time.Now().Unix()))
+	for i := 0; i < len(token); i += 4 {
+		x := mt.ExtractNumber()
+		token[i] = byte(x)
+		token[i+1] = byte(x >> 8)
+		token[i+2] = byte(x >> 16)
+		token[i+3] = byte(x >> 24)
+	}
+	return token
+}
+
+func detectMT19937Token(token []byte) bool {
+	tk := make([]byte, 16)
+	for delta := uint32(0); delta < 60*60*24; delta++ {
+		mt := NewMT19937(uint32(time.Now().Unix()) - delta)
+		for i := 0; i < len(tk); i += 4 {
+			x := mt.ExtractNumber()
+			tk[i] = byte(x)
+			tk[i+1] = byte(x >> 8)
+			tk[i+2] = byte(x >> 16)
+			tk[i+3] = byte(x >> 24)
+		}
+		if bytes.Equal(token, tk) {
+			return true
+		}
+	}
+	return false
+}
